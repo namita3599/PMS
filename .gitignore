@@ -1,0 +1,13 @@
+# ========================
+# Node.js (Backend & Frontend)
+# ========================
+node_modules/
+
+# ========================
+# Environment Variables (Secrets)
+# ========================
+.env
+.env.*
+
+
+
