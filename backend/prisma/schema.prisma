@@ -1,0 +1,103 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [postgis]
+}
+
+enum Role {
+  ADMIN
+  OWNER
+  RECEPTIONIST
+}
+
+enum PropertyStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum RoomStatus {
+  VACANT
+  OCCUPIED
+  MAINTENANCE
+}
+
+model User {
+  id        String   @id @default(uuid())
+  clerkId   String   @unique
+  email     String   @unique
+  name      String
+  role      Role     @default(RECEPTIONIST)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Owner specific relations
+  ownedProperties Property[] @relation("PropertyOwner")
+
+  // Receptionist specific relations
+  workingAtPropertyId String?
+  workingAtProperty   Property? @relation("PropertyReceptionist", fields: [workingAtPropertyId], references: [id])
+}
+
+model Property {
+  id        String         @id @default(uuid())
+  name      String
+  address   String
+  floors    Int
+  status    PropertyStatus @default(ACTIVE)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  ownerId String
+  owner   User   @relation("PropertyOwner", fields: [ownerId], references: [id])
+
+  receptionists User[]         @relation("PropertyReceptionist")
+  rooms         Room[]
+  ambiguityLogs AmbiguityLog[]
+}
+
+model Room {
+  id         String     @id @default(uuid())
+  number     String
+  capacity   Int
+  price      Float
+  status     RoomStatus @default(VACANT)
+  
+  propertyId String
+  property   Property   @relation(fields: [propertyId], references: [id])
+  
+  bookings   Booking[]
+
+  @@unique([propertyId, number])
+}
+
+model Booking {
+  id               String    @id @default(uuid())
+  guestName        String
+  guestContact     String?
+  guestIdProof     String?
+  occupants        Int
+  checkIn          DateTime  @default(now())
+  expectedCheckOut DateTime
+  checkOut         DateTime?
+  totalAmount      Float?
+  
+  roomId String
+  room   Room   @relation(fields: [roomId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AmbiguityLog {
+  id             String   @id @default(uuid())
+  timestamp      DateTime @default(now())
+  ambiguityScore Float
+  personCount    Int
+  
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id])
+}
